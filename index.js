@@ -1,6 +1,6 @@
 require('dotenv').config();
 var Client = require('whatsapp-web.js').Client;
-var LocalAuth = require('whatsapp-web.js').LocalAuth;
+var NoAuth = require('whatsapp-web.js').NoAuth;
 var http = require('http');
 var GoogleGenerativeAI = require('@google/generative-ai').GoogleGenerativeAI;
 
@@ -14,7 +14,7 @@ var genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 var conversations = {};
 
 var client = new Client({
-  authStrategy: new LocalAuth({ clientId: 'whatsapp-bot-2' }),
+  authStrategy: new NoAuth(),
   puppeteer: {
     executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium',
     args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],

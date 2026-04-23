@@ -13,8 +13,7 @@ const conversations = {};
 
 const client = new Client({
   authStrategy: new LocalAuth({ clientId: 'whatsapp-bot' }),
-  puppeteer: { args: ['--no-sandbox', '--disable-setuid-sandbox'], headless: true },
-});
+  puppeteer: { executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium', args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'], headless: true },
 
 client.on('qr', (qr) => { qrcode.generate(qr, { small: true }); });
 client.on('ready', () => { console.log(`✅ ${BOT_NAME} is online!`); });

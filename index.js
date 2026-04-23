@@ -14,23 +14,6 @@ var latestQR = null;
 var genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 var conversations = {};
 
-// Simple web server to display QR code
-var server = http.createServer(function(req, res) {
-  if (latestQR) {
-    QRCode.toDataURL(latestQR, function(err, url) {
-      res.writeHead(200, {'Content-Type': 'text/html'});
-      res.end('<html><body style="background:#000;display:flex;justify-content:center;align-items:center;height:100vh"><img src="' + url + '" style="width:300px;height:300px"/></body></html>');
-    });
-  } else {
-    res.writeHead(200, {'Content-Type': 'text/html'});
-    res.end('<html><body style="background:#000;color:#fff;display:flex;justify-content:center;align-items:center;height:100vh"><h2>Bot is already connected!</h2></body></html>');
-  }
-});
-
-server.listen(process.env.PORT || 3000, '0.0.0.0', function() {
-  console.log('QR server running!');
-});
-
 var client = new Client({
   authStrategy: new LocalAuth({ clientId: 'whatsapp-bot' }),
   puppeteer: {
@@ -42,7 +25,7 @@ var client = new Client({
 
 client.on('qr', function(qr) {
   latestQR = qr;
-  console.log('QR code ready - open the app URL to scan it!');
+  console.log('QR code ready!');
 });
 
 client.on('ready', function() {
@@ -58,28 +41,16 @@ client.on('message', async function(message) {
   if (message.isStatus || message.fromMe) return;
   var chatId = message.from;
   if (!conversations[chatId]) conversations[chatId] = [];
-
   try {
     if (message.type === 'chat') {
       var text = message.body ? message.body.trim() : '';
       if (!text) return;
-      if (text === '/clear') {
-        conversations[chatId] = [];
-        await message.reply('History cleared!');
-        return;
-      }
+      if (text === '/clear') { conversations[chatId] = []; await message.reply('Cleared!'); return; }
       conversations[chatId].push({ role: 'user', parts: [{ text: text }] });
     } else if (message.type === 'ptt' || message.type === 'audio') {
-      await message.reply('I cannot process audio yet — type it instead!');
-      return;
-    } else {
-      return;
-    }
-
-    if (conversations[chatId].length > MAX_HISTORY) {
-      conversations[chatId] = conversations[chatId].slice(-MAX_HISTORY);
-    }
-
+      await message.reply('Cannot process audio yet — type instead!'); return;
+    } else { return; }
+    if (conversations[chatId].length > MAX_HISTORY) conversations[chatId] = conversations[chatId].slice(-MAX_HISTORY);
     var model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash', systemInstruction: SYSTEM_PROMPT });
     var chat = model.startChat({ history: conversations[chatId].slice(0, -1) });
     var last = conversations[chatId][conversations[chatId].length - 1];
@@ -89,8 +60,23 @@ client.on('message', async function(message) {
     await message.reply(reply);
   } catch (e) {
     console.error(e.message);
-    await message.reply('Something went wrong, try again!');
+    await message.reply('Something went wrong!');
   }
 });
 
-client.initialize();
+var server = http.createServer(function(req, res) {
+  if (latestQR) {
+    QRCode.toDataURL(latestQR, function(err, url) {
+      res.writeHead(200, {'Content-Type': 'text/html'});
+      res.end('<html><body style="background:#000;display:flex;justify-content:center;align-items:center;height:100vh;margin:0"><img src="' + url + '" style="width:300px;height:300px"/></body></html>');
+    });
+  } else {
+    res.writeHead(200, {'Content-Type': 'text/html'});
+    res.end('<html><body style="background:#000;color:#fff;display:flex;justify-content:center;align-items:center;height:100vh;margin:0;font-family:sans-serif"><h2>✅ Bot is connected!</h2></body></html>');
+  }
+});
+
+server.listen(process.env.PORT || 3000, '0.0.0.0', function() {
+  console.log('QR server running on port ' + (process.env.PORT || 3000));
+  client.initialize();
+});

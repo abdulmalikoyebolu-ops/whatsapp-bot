@@ -1,14 +1,15 @@
 require('dotenv').config();
 var Client = require('whatsapp-web.js').Client;
 var NoAuth = require('whatsapp-web.js').NoAuth;
+var QRCode = require('qrcode');
 var http = require('http');
 var GoogleGenerativeAI = require('@google/generative-ai').GoogleGenerativeAI;
 
 var GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-var BOT_NAME = process.env.BOT_NAME || 'Vektra AI';
 var SYSTEM_PROMPT = 'You are a helpful personal AI assistant on WhatsApp. Be conversational, concise and friendly. Keep responses short. No markdown formatting. Use emojis occasionally.';
 var MAX_HISTORY = 20;
-var pairingCode = null;
+var latestQR = null;
+var isConnected = false;
 
 var genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 var conversations = {};
@@ -23,18 +24,15 @@ var client = new Client({
   webVersionCache: { type: 'remote', remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.2412.54.html' }
 });
 
-client.on('qr', async function(qr) {
-  try {
-    var code = await client.requestPairingCode('2349026739921');
-    pairingCode = code;
-    console.log('Pairing code: ' + code);
-  } catch(e) {
-    console.log('Pairing code error: ' + e.message);
-  }
+client.on('qr', function(qr) {
+  latestQR = qr;
+  isConnected = false;
+  console.log('QR code ready!');
 });
 
 client.on('ready', function() {
-  pairingCode = null;
+  latestQR = null;
+  isConnected = true;
   console.log('Bot is online!');
 });
 
@@ -70,11 +68,17 @@ client.on('message', async function(message) {
 });
 
 var server = http.createServer(function(req, res) {
-  res.writeHead(200, {'Content-Type': 'text/html'});
-  if (pairingCode) {
-    res.end('<html><body style="background:#000;color:#fff;display:flex;flex-direction:column;justify-content:center;align-items:center;height:100vh;margin:0;font-family:sans-serif"><h2>Enter this code in WhatsApp</h2><h1 style="color:#25D366;font-size:60px;letter-spacing:10px">' + pairingCode + '</h1><p>WhatsApp → Linked Devices → Link with phone number</p></body></html>');
-  } else {
+  if (isConnected) {
+    res.writeHead(200, {'Content-Type': 'text/html'});
     res.end('<html><body style="background:#000;color:#fff;display:flex;justify-content:center;align-items:center;height:100vh;margin:0;font-family:sans-serif"><h2>✅ Bot is connected!</h2></body></html>');
+  } else if (latestQR) {
+    QRCode.toDataURL(latestQR, function(err, url) {
+      res.writeHead(200, {'Content-Type': 'text/html'});
+      res.end('<html><body style="background:#000;display:flex;flex-direction:column;justify-content:center;align-items:center;height:100vh;margin:0;font-family:sans-serif;color:#fff"><h2>Scan with WhatsApp</h2><img src="' + url + '" style="width:300px;height:300px"/><p>Open WhatsApp → Linked Devices → Link a Device</p></body></html>');
+    });
+  } else {
+    res.writeHead(200, {'Content-Type': 'text/html'});
+    res.end('<html><body style="background:#000;color:#fff;display:flex;justify-content:center;align-items:center;height:100vh;margin:0;font-family:sans-serif"><h2>⏳ Starting up, refresh in 30 seconds...</h2></body></html>');
   }
 });
 

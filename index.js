@@ -1,16 +1,35 @@
 require('dotenv').config();
 var Client = require('whatsapp-web.js').Client;
 var LocalAuth = require('whatsapp-web.js').LocalAuth;
-var qrcode = require('qrcode-terminal');
+var QRCode = require('qrcode');
+var http = require('http');
 var GoogleGenerativeAI = require('@google/generative-ai').GoogleGenerativeAI;
 
 var GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 var BOT_NAME = process.env.BOT_NAME || 'Vektra AI';
 var SYSTEM_PROMPT = 'You are a helpful personal AI assistant on WhatsApp. Be conversational, concise and friendly. Keep responses short. No markdown formatting. Use emojis occasionally.';
 var MAX_HISTORY = 20;
+var latestQR = null;
 
 var genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 var conversations = {};
+
+// Simple web server to display QR code
+var server = http.createServer(function(req, res) {
+  if (latestQR) {
+    QRCode.toDataURL(latestQR, function(err, url) {
+      res.writeHead(200, {'Content-Type': 'text/html'});
+      res.end('<html><body style="background:#000;display:flex;justify-content:center;align-items:center;height:100vh"><img src="' + url + '" style="width:300px;height:300px"/></body></html>');
+    });
+  } else {
+    res.writeHead(200, {'Content-Type': 'text/html'});
+    res.end('<html><body style="background:#000;color:#fff;display:flex;justify-content:center;align-items:center;height:100vh"><h2>Bot is already connected!</h2></body></html>');
+  }
+});
+
+server.listen(process.env.PORT || 3000, function() {
+  console.log('QR server running!');
+});
 
 var client = new Client({
   authStrategy: new LocalAuth({ clientId: 'whatsapp-bot' }),
@@ -22,11 +41,12 @@ var client = new Client({
 });
 
 client.on('qr', function(qr) {
-  qrcode.generate(qr, { small: true });
-  console.log('QR code generated - scan it!');
+  latestQR = qr;
+  console.log('QR code ready - open the app URL to scan it!');
 });
 
 client.on('ready', function() {
+  latestQR = null;
   console.log('Bot is online!');
 });
 

@@ -14,7 +14,7 @@ var genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 var conversations = {};
 
 var client = new Client({
-  authStrategy: new LocalAuth({ clientId: 'whatsapp-bot' }),
+  authStrategy: new LocalAuth({ clientId: 'whatsapp-bot-2' }),
   puppeteer: {
     executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium',
     args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],

@@ -26,7 +26,20 @@ var client = new Client({
       '--disable-software-rasterizer',
       '--disable-extensions',
       '--no-first-run',
-      '--single-process'
+      '--single-process',
+      '--max-old-space-size=256',
+      '--memory-pressure-off',
+      '--disable-background-networking',
+      '--disable-default-apps',
+      '--disable-sync',
+      '--disable-translate',
+      '--hide-scrollbars',
+      '--metrics-recording-only',
+      '--mute-audio',
+      '--no-first-run',
+      '--safebrowsing-disable-auto-update',
+      '--ignore-certificate-errors',
+      '--ignore-ssl-errors'
     ],
     headless: true,
     timeout: 60000
